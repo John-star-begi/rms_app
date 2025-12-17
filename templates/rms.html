@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>RMS | Class A Fix</title>
+<style>
+body{font-family:Arial;font-size:12px}
+.card{border:1px solid #ccc;padding:12px;margin-bottom:12px}
+h2{margin-top:0}
+img{width:100%;margin-top:6px}
+.status-ok{color:green;font-weight:bold}
+.status-bad{color:red;font-weight:bold}
+</style>
+</head>
+
+<body>
+
+<h1>Rental Minimum Standards – Class A Fix</h1>
+
+<form method="post" action="/generate" enctype="multipart/form-data">
+
+<div class="card">
+<label>Agency</label><br>
+<input name="agency" required value="Nelson Alexander"><br><br>
+
+<label>Property Manager</label><br>
+<input name="property_manager" required><br><br>
+
+<label>Property Address</label><br>
+<input name="property_address" required style="width:100%">
+</div>
+
+{% for cat in categories %}
+{% set key = cat.lower().replace(" ", "_") %}
+<div class="card">
+<h2>{{ cat }}</h2>
+
+<label>Status</label><br>
+<input type="radio" name="{{ key }}_status" value="Compliant" required> Compliant
+<input type="radio" name="{{ key }}_status" value="Non compliant"> Non compliant<br><br>
+
+<label>Inspector comment (optional)</label><br>
+<textarea name="{{ key }}_comment" style="width:100%"></textarea><br><br>
+
+<label>Photos</label><br>
+<input type="file" name="{{ key }}_photos" multiple>
+</div>
+{% endfor %}
+
+<button type="submit">Generate PDF</button>
+</form>
+
+{% if data %}
+<hr>
+<h1>Rental Minimum Standards Report</h1>
+<p><strong>Agency:</strong> {{ agency }}</p>
+<p><strong>Property Manager:</strong> {{ property_manager }}</p>
+<p><strong>Property:</strong> {{ property_address }}</p>
+<p><strong>Date:</strong> {{ generated_date }}</p>
+
+{% for key, cat in data.items() %}
+<div class="card">
+<h2>{{ cat.name }}
+<span class="{{ 'status-ok' if cat.status == 'Compliant' else 'status-bad' }}">
+{{ cat.status }}
+</span>
+</h2>
+
+{% if cat.comment %}
+<p><strong>Comment:</strong> {{ cat.comment }}</p>
+{% endif %}
+
+{% for photo in cat.photos %}
+<img src="{{ photo }}">
+{% endfor %}
+</div>
+{% endfor %}
+{% endif %}
+
+</body>
+</html>
