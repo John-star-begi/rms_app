@@ -9,13 +9,11 @@
   --brand:#0077B6;
   --brand-light:#E8F4FB;
   --brand-header:#E3F2FD;
-
   --text:#222;
   --muted:#666;
   --ok:#2E7D32;
   --bad:#B00020;
   --na:#777;
-
   --border:#D0D7DE;
   --radius:14px;
 }
@@ -29,11 +27,7 @@ body{
   color:var(--text);
 }
 
-.page{
-  max-width:170mm;
-  margin:0 auto;
-}
-
+.page{max-width:170mm;margin:0 auto;}
 .spacer{height:14px;}
 
 .card{
@@ -46,8 +40,8 @@ body{
 .header-card{
   background:var(--brand-header);
   display:flex;
-  align-items:center;
   gap:14px;
+  align-items:center;
 }
 
 .header-card img{
@@ -62,14 +56,9 @@ body{
   color:var(--brand);
 }
 
-.header-sub{
-  font-size:10pt;
-  color:var(--muted);
-}
+.header-sub{font-size:10pt;color:var(--muted);}
 
-.info-card{
-  background:var(--brand-light);
-}
+.info-card{background:var(--brand-light);}
 
 .info-grid{
   display:grid;
@@ -77,16 +66,8 @@ body{
   gap:6px 12px;
 }
 
-.label{
-  font-size:9.5pt;
-  font-weight:700;
-  color:#444;
-}
-
-.value{
-  font-size:10pt;
-}
-
+.label{font-size:9.5pt;font-weight:700;color:#444;}
+.value{font-size:10pt;}
 .value.ok{color:var(--ok);font-weight:700;}
 .value.bad{color:var(--bad);font-weight:700;}
 
@@ -96,40 +77,19 @@ body{
   gap:12px;
 }
 
-.summary-card{
-  text-align:center;
-  padding:18px 10px;
-}
+.summary-card{text-align:center;padding:18px 10px;}
+.summary-label{font-size:9.5pt;color:var(--muted);font-weight:700;}
+.summary-number{font-size:22pt;font-weight:700;color:var(--brand);margin-top:6px;}
 
-.summary-label{
-  font-size:9.5pt;
-  color:var(--muted);
-  font-weight:700;
-}
-
-.summary-number{
-  font-size:22pt;
-  font-weight:700;
-  color:var(--brand);
-  margin-top:6px;
-}
-
-.table-card{
-  padding:0;
-  overflow:hidden;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-}
+.table-card{padding:0;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
 
 thead th{
   background:#F3F6FA;
   color:var(--brand);
   font-size:9.5pt;
-  text-align:left;
   padding:10px 14px;
+  text-align:left;
 }
 
 tbody td{
@@ -150,12 +110,13 @@ tbody td{
 
 .category-card{
   padding:16px;
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 .category-head{
   display:flex;
   justify-content:space-between;
-  align-items:baseline;
   font-weight:700;
   font-size:11pt;
 }
@@ -177,7 +138,6 @@ tbody td{
 
 .checklist li{
   font-size:9.5pt;
-  color:#333;
   margin-bottom:4px;
 }
 
@@ -219,9 +179,8 @@ tbody td{
 <body>
 <div class="page">
 
-<!-- HEADER -->
 <div class="card header-card">
-  <img src="/static/class-a-fix-logo.jpg" alt="Class A Fix">
+  <img src="/static/class-a-fix-logo.jpg">
   <div>
     <div class="header-title">Rental Minimum Standards Check</div>
     <div class="header-sub">Class A Fix Service Report</div>
@@ -230,7 +189,6 @@ tbody td{
 
 <div class="spacer"></div>
 
-<!-- INFO CARD -->
 <div class="card info-card">
   <div class="info-grid">
     <div class="label">Property</div><div class="value">{{ property_address }}</div>
@@ -243,7 +201,6 @@ tbody td{
 
 <div class="spacer"></div>
 
-<!-- SUMMARY CARDS -->
 <div class="summary-row">
   <div class="card summary-card">
     <div class="summary-label">Standards checked</div>
@@ -261,7 +218,6 @@ tbody td{
 
 <div class="spacer"></div>
 
-<!-- TABLE SUMMARY -->
 <div class="card table-card">
 <table>
 <thead>
@@ -285,7 +241,6 @@ tbody td{
 
 <div class="spacer"></div>
 
-<!-- CATEGORY DETAIL CARDS -->
 <div class="section-title">Category assessment details</div>
 
 {% for cat in categories %}
@@ -313,7 +268,7 @@ tbody td{
   {% if cat.photos %}
   <div class="photos-grid">
     {% for p in cat.photos %}
-    <img src="{{ p }}" alt="Inspection photo">
+    <img src="{{ p }}">
     {% endfor %}
   </div>
   {% endif %}
@@ -322,13 +277,12 @@ tbody td{
 <div class="spacer"></div>
 {% endfor %}
 
-<!-- PHOTO APPENDIX -->
 {% if all_photos %}
 <div class="card">
   <div class="section-title">Inspection photo appendix</div>
   <div class="photos-grid">
     {% for p in all_photos %}
-    <img src="{{ p }}" alt="Inspection photo">
+    <img src="{{ p }}">
     {% endfor %}
   </div>
 </div>
