@@ -12,9 +12,9 @@ from starlette.templating import Jinja2Templates
 from weasyprint import HTML
 
 
-# -------------------------------------------------------------------
+# --------------------------------------------------
 # App setup
-# -------------------------------------------------------------------
+# --------------------------------------------------
 
 app = FastAPI()
 
@@ -33,9 +33,9 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
-# -------------------------------------------------------------------
-# Category configuration
-# -------------------------------------------------------------------
+# --------------------------------------------------
+# Categories
+# --------------------------------------------------
 
 CATEGORIES: List[str] = [
     "Electrical safety",
@@ -65,9 +65,9 @@ def safe_filename(name: str) -> str:
     return base if base else "upload"
 
 
-# -------------------------------------------------------------------
+# --------------------------------------------------
 # Routes
-# -------------------------------------------------------------------
+# --------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
 async def show_form(request: Request):
@@ -88,10 +88,11 @@ async def generate_report(request: Request):
     property_address = (form.get("property_address") or "").strip()
 
     report_data: Dict[str, Dict[str, Any]] = {}
+    all_photos: List[str] = []
 
-    # ---------------------------------------------------------------
-    # Collect category data
-    # ---------------------------------------------------------------
+    # ----------------------------------------------
+    # Collect category data and photos
+    # ----------------------------------------------
 
     for category in CATEGORIES:
         key = category_key(category)
@@ -109,16 +110,18 @@ async def generate_report(request: Request):
             filename = safe_filename(upload.filename)
             unique = uuid.uuid4().hex
             final_name = f"{key}_{unique}_{filename}"
-            path = UPLOAD_DIR / final_name
+            file_path = UPLOAD_DIR / final_name
 
             content = await upload.read()
             if not content:
                 continue
 
-            with open(path, "wb") as f:
+            with open(file_path, "wb") as f:
                 f.write(content)
 
-            photos.append(f"/static/uploads/{final_name}")
+            photo_url = f"/static/uploads/{final_name}"
+            photos.append(photo_url)
+            all_photos.append(photo_url)
 
         report_data[category] = {
             "status": status,
@@ -126,9 +129,9 @@ async def generate_report(request: Request):
             "photos": photos,
         }
 
-    # ---------------------------------------------------------------
-    # Derived values for the report
-    # ---------------------------------------------------------------
+    # ----------------------------------------------
+    # Derived values
+    # ----------------------------------------------
 
     non_compliant_count = sum(
         1 for item in report_data.values()
@@ -141,9 +144,9 @@ async def generate_report(request: Request):
     pdf_filename = f"rms_report_{pdf_id}.pdf"
     pdf_path = REPORT_DIR / pdf_filename
 
-    # ---------------------------------------------------------------
+    # ----------------------------------------------
     # Render PDF HTML
-    # ---------------------------------------------------------------
+    # ----------------------------------------------
 
     html_content = templates.get_template("report.html").render(
         {
@@ -152,14 +155,15 @@ async def generate_report(request: Request):
             "reference": reference,
             "data": report_data,
             "non_compliant_count": non_compliant_count,
+            "photos": all_photos,
         }
     )
 
     HTML(string=html_content, base_url=str(BASE_DIR)).write_pdf(str(pdf_path))
 
-    # ---------------------------------------------------------------
-    # Return form with success message
-    # ---------------------------------------------------------------
+    # ----------------------------------------------
+    # Return form with download link
+    # ----------------------------------------------
 
     return templates.TemplateResponse(
         "form.html",
