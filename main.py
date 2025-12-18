@@ -280,6 +280,9 @@ async def generate_report(request: Request):
 
     html = templates.get_template("report.html").render(context)
 
+    html_path = report_dir / "report.html"
+    html_path.write_text(html, encoding="utf-8")
+
     pdf_path = report_dir / f"{report_id}.pdf"
 
     async with async_playwright() as p:
@@ -289,16 +292,14 @@ async def generate_report(request: Request):
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
                 "--disable-gpu",
-                "--single-process",
-                "--allow-file-access-from-files",
-                "--disable-web-security"
+                "--single-process"
             ]
         )
 
         page = await browser.new_page()
 
-        await page.set_content(
-            html,
+        await page.goto(
+            html_path.resolve().as_uri(),
             wait_until="networkidle"
         )
 
