@@ -7,139 +7,168 @@
 <style>
 :root{
   --brand:#0077B6;
-  --light-brand:#E8F4FB;
-  --light-header:#E3F2FD;
-  --table-head:#F3F6FA;
+  --brand-light:#E8F4FB;
+  --brand-header:#E3F2FD;
 
   --text:#222;
-  --label:#555;
-  --muted:#777;
+  --muted:#666;
   --ok:#2E7D32;
   --bad:#B00020;
 
   --border:#D0D7DE;
-  --radius:12px;
-  --pad:12px;
+  --radius:14px;
 }
 
 @page{size:A4;margin:20mm;}
+
 body{
   margin:0;
   font-family: Helvetica, Arial, sans-serif;
   font-size:10pt;
   color:var(--text);
 }
-.page{max-width:170mm;margin:0 auto;}
-.spacer{height:10px;}
+
+.page{
+  max-width:170mm;
+  margin:0 auto;
+}
+
+.spacer{height:14px;}
 
 .card{
   border:1px solid var(--border);
   border-radius:var(--radius);
-  padding:var(--pad);
   background:#fff;
+  padding:14px;
 }
 
-.header{
-  background:var(--light-header);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:10px 12px;
+.header-card{
+  background:var(--brand-header);
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:14px;
 }
 
-.logo{height:42px;max-width:120px;object-fit:contain;}
+.header-card img{
+  height:42px;
+  max-width:130px;
+  object-fit:contain;
+}
 
-h1{
-  margin:0;
-  font-size:14pt;
+.header-title{
+  font-size:15pt;
+  font-weight:700;
   color:var(--brand);
+  margin:0;
 }
-.subtitle{color:var(--muted);font-size:10pt;}
 
-.info-card{background:var(--light-brand);}
+.header-sub{
+  font-size:10pt;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+.info-card{
+  background:var(--brand-light);
+}
+
 .info-grid{
   display:grid;
   grid-template-columns:180px 1fr;
-  gap:6px 12px;
+  row-gap:6px;
+  column-gap:12px;
 }
-.label{font-size:9.5pt;font-weight:700;color:var(--label);}
-.value{font-size:10pt;}
+
+.label{
+  font-size:9.5pt;
+  font-weight:700;
+  color:#444;
+}
+
+.value{
+  font-size:10pt;
+}
+
 .value.ok{color:var(--ok);font-weight:700;}
 .value.bad{color:var(--bad);font-weight:700;}
 
 .summary-row{
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  gap:10px;
+  gap:12px;
 }
-.summary-card{text-align:center;padding:14px 10px;}
-.summary-title{font-size:9.5pt;color:var(--muted);font-weight:700;}
-.summary-value{font-size:20pt;color:var(--brand);font-weight:700;}
 
-.section-title{
-  font-size:11pt;
+.summary-card{
+  text-align:center;
+  padding:18px 10px;
+}
+
+.summary-label{
+  font-size:9.5pt;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.summary-number{
+  font-size:22pt;
   font-weight:700;
   color:var(--brand);
-  margin-bottom:6px;
+  margin-top:6px;
 }
 
-.table-card{padding:0;overflow:hidden;}
-table{width:100%;border-collapse:collapse;}
-th{
-  background:var(--table-head);
+.table-card{
+  padding:0;
+  overflow:hidden;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+thead th{
+  background:#F3F6FA;
   color:var(--brand);
   font-size:9.5pt;
-  padding:10px 12px;
   text-align:left;
+  padding:10px 14px;
 }
-td{
-  padding:10px 12px;
+
+tbody td{
+  padding:10px 14px;
   border-top:1px solid var(--border);
-  vertical-align:top;
 }
 
 .status-ok{color:var(--ok);font-weight:700;}
 .status-bad{color:var(--bad);font-weight:700;}
 .status-na{color:var(--muted);font-weight:700;}
 
-.details-card .category{
-  border-top:1px solid var(--border);
-  padding-top:10px;
-  margin-top:10px;
-}
-.details-card .category:first-child{
-  border-top:none;
-  padding-top:0;
-  margin-top:0;
+.section-title{
+  font-size:11pt;
+  font-weight:700;
+  color:var(--brand);
+  margin-bottom:8px;
 }
 
-.cat-head{
+.category-card{
+  padding:14px;
+}
+
+.category-head{
   display:flex;
   justify-content:space-between;
-  gap:12px;
   align-items:baseline;
   font-weight:700;
 }
-.cat-status.ok{color:var(--ok);}
-.cat-status.bad{color:var(--bad);}
-.cat-status.na{color:var(--muted);}
 
-.cat-summary{
-  margin-top:4px;
-  color:var(--muted);
-  font-size:9.5pt;
-}
+.category-status.ok{color:var(--ok);}
+.category-status.bad{color:var(--bad);}
+.category-status.na{color:var(--muted);}
 
-.checklist{
-  margin:8px 0 0 16px;
-  padding:0;
-}
-.checklist li{
-  margin-bottom:4px;
-  color:var(--muted);
+.category-note{
+  margin-top:6px;
   font-size:9.5pt;
+  color:var(--muted);
 }
 
 .photos-grid{
@@ -147,6 +176,7 @@ td{
   grid-template-columns:1fr 1fr;
   gap:12px;
 }
+
 .photos-grid img{
   width:100%;
   height:220px;
@@ -157,14 +187,10 @@ td{
   font-size:9.5pt;
   color:var(--muted);
   text-align:center;
-  padding:6px 12px;
 }
 
-.footer{
-  background:var(--light-header);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:8px;
+.footer-card{
+  background:var(--brand-header);
   text-align:center;
   font-weight:700;
   color:var(--brand);
@@ -175,16 +201,18 @@ td{
 <body>
 <div class="page">
 
-<div class="header">
-  <img src="/static/class-a-fix-logo.jpg" class="logo" alt="Class A Fix">
+<!-- HEADER CARD -->
+<div class="card header-card">
+  <img src="/static/class-a-fix-logo.jpg" alt="Class A Fix">
   <div>
-    <h1>Rental Minimum Standards Check</h1>
-    <div class="subtitle">Class A Fix Service Report</div>
+    <div class="header-title">Rental Minimum Standards Check</div>
+    <div class="header-sub">Class A Fix Service Report</div>
   </div>
 </div>
 
 <div class="spacer"></div>
 
+<!-- INFO CARD -->
 <div class="card info-card">
   <div class="info-grid">
     <div class="label">Property</div><div class="value">{{ property_address }}</div>
@@ -203,74 +231,67 @@ td{
 
 <div class="spacer"></div>
 
+<!-- SUMMARY CARDS -->
 <div class="summary-row">
   <div class="card summary-card">
-    <div class="summary-title">Standards checked</div>
-    <div class="summary-value">{{ standards_checked }}</div>
+    <div class="summary-label">Standards checked</div>
+    <div class="summary-number">{{ standards_checked }}</div>
   </div>
   <div class="card summary-card">
-    <div class="summary-title">Non compliant</div>
-    <div class="summary-value">{{ non_compliant_count }}</div>
+    <div class="summary-label">Non compliant</div>
+    <div class="summary-number">{{ non_compliant_count }}</div>
   </div>
   <div class="card summary-card">
-    <div class="summary-title">Actions required</div>
-    <div class="summary-value">{{ actions_required }}</div>
+    <div class="summary-label">Actions required</div>
+    <div class="summary-number">{{ actions_required }}</div>
   </div>
 </div>
 
 <div class="spacer"></div>
 
+<!-- TABLE CARD -->
 <div class="card table-card">
-<table>
-<thead>
-<tr>
-  <th>Category</th>
-  <th>Status</th>
-  <th>Summary</th>
-</tr>
-</thead>
-<tbody>
-{% for row in table_rows %}
-<tr>
-  <td>{{ row.category }}</td>
-  <td class="{{ row.status_class }}">{{ row.status }}</td>
-  <td>{{ row.summary }}</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-</div>
-
-<div class="spacer"></div>
-
-<div class="card details-card">
-  <div class="section-title">Category assessment details</div>
-
-  {% for cat in categories %}
-  <div class="category">
-    <div class="cat-head">
-      <div>{{ cat.name }}</div>
-      <div class="cat-status {{ cat.cat_status_class }}">{{ cat.status }}</div>
-    </div>
-
-    {% if cat.explanation and cat.explanation|length > 0 %}
-    <ul class="checklist">
-      {% for line in cat.explanation %}
-      <li>{{ line }}</li>
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Status</th>
+        <th>Summary</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in table_rows %}
+      <tr>
+        <td>{{ row.category }}</td>
+        <td class="{{ row.status_class }}">{{ row.status }}</td>
+        <td>{{ row.summary }}</td>
+      </tr>
       {% endfor %}
-    </ul>
-    {% endif %}
-
-    {% if cat.note %}
-    <div class="cat-summary">{{ cat.note }}</div>
-    {% endif %}
-  </div>
-  {% endfor %}
+    </tbody>
+  </table>
 </div>
 
 <div class="spacer"></div>
 
-{% if photo_urls and photo_urls|length > 0 %}
+<!-- CATEGORY DETAIL CARDS -->
+<div class="section-title">Category assessment details</div>
+
+{% for cat in categories %}
+<div class="card category-card">
+  <div class="category-head">
+    <div>{{ cat.name }}</div>
+    <div class="category-status {{ cat.cat_status_class }}">{{ cat.status }}</div>
+  </div>
+
+  {% if cat.note %}
+  <div class="category-note">{{ cat.note }}</div>
+  {% endif %}
+</div>
+<div class="spacer"></div>
+{% endfor %}
+
+<!-- PHOTOS -->
+{% if photo_urls %}
 <div class="card">
   <div class="section-title">Inspection photo record</div>
   <div class="photos-grid">
@@ -279,9 +300,9 @@ td{
     {% endfor %}
   </div>
 </div>
-{% endif %}
 
 <div class="spacer"></div>
+{% endif %}
 
 <div class="assurance">
   This report has been prepared to help ensure the property meets Victorian Minimum Rental Standards.
@@ -289,7 +310,7 @@ td{
 
 <div class="spacer"></div>
 
-<div class="footer">
+<div class="card footer-card">
   Class A Fix – Maintenance Management Services | info@classafix.com.au | 03 9063 1538
 </div>
 
