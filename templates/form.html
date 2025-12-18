@@ -1,123 +1,118 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RMS Report Generator</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 24px; }
-      .wrap { max-width: 980px; margin: 0 auto; }
-      .header { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
-      .logo { width: 140px; height: auto; }
-      h1 { margin: 0; font-size: 22px; }
-      .meta { color: #444; font-size: 14px; margin-top: 4px; }
-      .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin: 12px 0; }
-      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      label { display: block; font-size: 13px; margin-bottom: 6px; color: #222; }
-      input[type="text"], textarea, select {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        box-sizing: border-box;
-        font-size: 14px;
-      }
-      textarea { min-height: 86px; resize: vertical; }
-      .category-title { font-weight: 700; margin-bottom: 8px; }
-      .actions { margin-top: 16px; display: flex; gap: 12px; align-items: center; }
-      button {
-        padding: 10px 14px;
-        border: 0;
-        background: #111;
-        color: white;
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 14px;
-      }
-      .success { background: #e9fff0; border: 1px solid #8be0a1; padding: 12px; border-radius: 10px; margin: 12px 0; }
-      .success a { font-weight: 700; }
-      .hint { color: #555; font-size: 12px; margin-top: 6px; }
-      .full { grid-column: 1 / -1; }
-      .footer { margin-top: 22px; font-size: 12px; color: #555; }
-    </style>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RMS Report Generator</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+    .logo { width: 140px; height: auto; }
+    h1 { margin: 0; font-size: 22px; }
+    .meta { color: #444; font-size: 14px; margin-top: 4px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin: 12px 0; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { display: block; font-size: 13px; margin-bottom: 6px; color: #222; }
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    textarea { min-height: 86px; resize: vertical; }
+    .category-title { font-weight: 700; margin-bottom: 8px; }
+    .actions { margin-top: 16px; display: flex; gap: 12px; align-items: center; }
+    button {
+      padding: 10px 14px;
+      border: 0;
+      background: #111;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .success { background: #e9fff0; border: 1px solid #8be0a1; padding: 12px; border-radius: 10px; margin: 12px 0; }
+    .success a { font-weight: 700; }
+    .hint { color: #555; font-size: 12px; margin-top: 6px; }
+    .full { grid-column: 1 / -1; }
+  </style>
+</head>
 
-  <body>
-    <div class="wrap">
-      <div class="header">
-        <img class="logo" src="/static/class-a-fix-logo.jpg" alt="Class A Fix Logo" />
-        <div>
-          <h1>RMS Report Generator</h1>
-          <div class="meta">Generated date: {{ generated_date }}</div>
-        </div>
-      </div>
-
-      {% if success_pdf_url %}
-      <div class="success">
-        Report created. <a href="{{ success_pdf_url }}" target="_blank" rel="noopener">Download PDF</a>
-      </div>
-      {% endif %}
-
-      <form method="post" action="/generate" enctype="multipart/form-data">
-        <div class="card">
-          <div class="row">
-            <div>
-              <label for="agency">Agency</label>
-              <input id="agency" name="agency" type="text" placeholder="Example: ABC Real Estate" />
-            </div>
-
-            <div>
-              <label for="property_manager">Property manager</label>
-              <input id="property_manager" name="property_manager" type="text" placeholder="Example: Sarah Jones" />
-            </div>
-
-            <div class="full">
-              <label for="property_address">Property address</label>
-              <input id="property_address" name="property_address" type="text" placeholder="Example: 12 Smith St, Melbourne VIC" />
-            </div>
-          </div>
-        </div>
-
-        {% for category in categories %}
-        {% set key = category|lower|replace(" ", "_") %}
-        <div class="card">
-          <div class="category-title">{{ category }}</div>
-
-          <div class="row">
-            <div>
-              <label for="{{ key }}_status">Status</label>
-              <select id="{{ key }}_status" name="{{ key }}_status" required>
-                <option value="" selected>Select</option>
-                <option value="Compliant">Compliant</option>
-                <option value="Non compliant">Non compliant</option>
-                <option value="Not applicable">Not applicable</option>
-              </select>
-              <div class="hint">Status is required for every category.</div>
-            </div>
-
-            <div>
-              <label for="{{ key }}_photos">Photos</label>
-              <input id="{{ key }}_photos" name="{{ key }}_photos" type="file" accept="image/*" multiple />
-              <div class="hint">You can upload multiple photos for this category.</div>
-            </div>
-
-            <div class="full">
-              <label for="{{ key }}_comment">Comment</label>
-              <textarea id="{{ key }}_comment" name="{{ key }}_comment" placeholder="Write notes here"></textarea>
-            </div>
-          </div>
-        </div>
-        {% endfor %}
-
-        <div class="actions">
-          <button type="submit">Generate PDF</button>
-          <div class="hint">After generating, you will see a download link at the top.</div>
-        </div>
-      </form>
-
-      <div class="footer">
-        Health check: <a href="/health" target="_blank" rel="noopener">/health</a>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <img class="logo" src="/static/class-a-fix-logo.jpg" alt="Class A Fix Logo" />
+      <div>
+        <h1>RMS Report Generator</h1>
+        <div class="meta">Generated date: {{ generated_date }}</div>
       </div>
     </div>
-  </body>
+
+    {% if success_pdf_url %}
+    <div class="success">
+      Report created. <a href="{{ success_pdf_url }}" target="_blank" rel="noopener">Download PDF</a>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/generate" enctype="multipart/form-data">
+      <div class="card">
+        <div class="row">
+          <div class="full">
+            <label for="property_address">Property address</label>
+            <input id="property_address" name="property_address" type="text" placeholder="Example: 14 Station Street, Reservoir VIC 3073" />
+          </div>
+
+          <div>
+            <label for="agency">Real estate agency</label>
+            <input id="agency" name="agency" type="text" placeholder="Example: Nelson Alexander – Reservoir" />
+          </div>
+
+          <div>
+            <label for="property_manager">Property manager</label>
+            <input id="property_manager" name="property_manager" type="text" placeholder="Example: Leah Racovalis" />
+          </div>
+        </div>
+      </div>
+
+      {% for category in categories %}
+      {% set key = category|lower|replace(" ", "_") %}
+      <div class="card">
+        <div class="category-title">{{ category }}</div>
+
+        <div class="row">
+          <div>
+            <label for="{{ key }}_status">Status</label>
+            <select id="{{ key }}_status" name="{{ key }}_status" required>
+              <option value="" selected>Select</option>
+              <option value="Compliant">Compliant</option>
+              <option value="Non compliant">Non compliant</option>
+              <option value="Not applicable">Not applicable</option>
+            </select>
+            <div class="hint">Status is required for every category.</div>
+          </div>
+
+          <div>
+            <label for="{{ key }}_photos">Photos</label>
+            <input id="{{ key }}_photos" name="{{ key }}_photos" type="file" accept="image/*" multiple />
+            <div class="hint">Upload evidence if relevant.</div>
+          </div>
+
+          <div class="full">
+            <label for="{{ key }}_comment">Notes</label>
+            <textarea id="{{ key }}_comment" name="{{ key }}_comment" placeholder="Short notes only. Keep it simple and clear."></textarea>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <div class="actions">
+        <button type="submit">Generate PDF</button>
+        <div class="hint">After generating, you will see a download link at the top.</div>
+      </div>
+    </form>
+  </div>
+</body>
 </html>
