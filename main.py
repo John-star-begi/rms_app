@@ -1,55 +1,67 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from weasyprint import HTML
-from datetime import datetime
 import os
+import uuid
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Any, List
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.templating import Jinja2Templates
+
+from weasyprint import HTML
+
 
 app = FastAPI()
 
-# -------------------------------
-# Folders
-# -------------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "static")
-UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads")
+BASE_DIR = Path(__file__).resolve().parent
 
-os.makedirs(STATIC_DIR, exist_ok=True)
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+STATIC_DIR = BASE_DIR / "static"
+UPLOAD_DIR = STATIC_DIR / "uploads"
+REPORT_DIR = STATIC_DIR / "reports"
 
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# -------------------------------
-# RMS Categories
-# -------------------------------
-CATEGORIES = [
-    "Bathroom",
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+CATEGORIES: List[str] = [
     "Electrical safety",
-    "Lighting",
-    "Kitchen",
-    "Laundry",
-    "Locks",
-    "Heating",
+    "Plumbing and water pressure",
+    "Hot water system",
+    "Heating and cooling",
+    "Smoke alarms",
+    "Windows and locks",
+    "Doors and locks",
     "Mould and damp",
-    "Structural soundness",
-    "Toilets",
-    "Ventilation",
-    "Vermin-proof bins",
-    "Window coverings",
-    "Windows",
+    "Structural issues",
+    "Pest issues",
+    "Roof and gutters",
+    "Appliances",
+    "Gas safety",
+    "General cleanliness",
 ]
 
-# -------------------------------
-# Routes
-# -------------------------------
+
+def safe_filename(original_name: str) -> str:
+    base = os.path.basename(original_name or "")
+    base = base.replace("\\", "_").replace("/", "_").strip()
+    if not base:
+        base = "upload"
+    return base
+
+
+def category_key(category: str) -> str:
+    return category.strip().lower().replace(" ", "_")
+
 
 @app.get("/", response_class=HTMLResponse)
-async def rms_form(request: Request):
+async def form_page(request: Request):
     return templates.TemplateResponse(
-        "rms.html",
+        "form.html",
         {
             "request": request,
             "categories": CATEGORIES,
@@ -59,62 +71,75 @@ async def rms_form(request: Request):
 
 
 @app.post("/generate", response_class=HTMLResponse)
-async def generate_rms(request: Request):
+async def generate_report(request: Request):
     form = await request.form()
 
-    agency = form.get("agency")
-    property_manager = form.get("property_manager")
-    property_address = form.get("property_address")
+    agency = (form.get("agency") or "").strip()
+    property_manager = (form.get("property_manager") or "").strip()
+    property_address = (form.get("property_address") or "").strip()
 
-    categories_data = {}
+    report_data: Dict[str, Dict[str, Any]] = {}
 
-    for cat in CATEGORIES:
-        key = cat.lower().replace(" ", "_").replace("-", "_")
+    for category in CATEGORIES:
+        key = category_key(category)
 
-        status = form.get(f"{key}_status")
-        comment = form.get(f"{key}_comment", "")
+        status = (form.get(f"{key}_status") or "").strip()
+        comment = (form.get(f"{key}_comment") or "").strip()
 
-        photos = form.getlist(f"{key}_photos")
+        saved_photos: List[str] = []
+        uploads = form.getlist(f"{key}_photos")
 
-        saved_photos = []
-        for photo in photos:
-            if not photo.filename:
+        for upload in uploads:
+            if not getattr(upload, "filename", None):
                 continue
 
-            filename = f"{key}_{photo.filename}"
-            filepath = os.path.join(UPLOAD_DIR, filename)
+            original = safe_filename(upload.filename)
+            unique = uuid.uuid4().hex
+            final_name = f"{key}_{unique}_{original}"
+            file_path = UPLOAD_DIR / final_name
 
-            with open(filepath, "wb") as f:
-                f.write(await photo.read())
+            contents = await upload.read()
+            if not contents:
+                continue
 
-            saved_photos.append(f"static/uploads/{filename}")
+            with open(file_path, "wb") as f:
+                f.write(contents)
 
-        categories_data[key] = {
-            "name": cat,
+            saved_photos.append(f"/static/uploads/{final_name}")
+
+        report_data[category] = {
             "status": status,
             "comment": comment,
             "photos": saved_photos,
         }
 
-    html = templates.get_template("rms.html").render(
-        request=request,
-        agency=agency,
-        property_manager=property_manager,
-        property_address=property_address,
-        data=categories_data,
-        generated_date=datetime.now().strftime("%d %b %Y"),
+    pdf_id = uuid.uuid4().hex
+    pdf_filename = f"rms_report_{pdf_id}.pdf"
+    pdf_path = REPORT_DIR / pdf_filename
+
+    html_content = templates.get_template("report.html").render(
+        {
+            "agency": agency,
+            "property_manager": property_manager,
+            "property_address": property_address,
+            "generated_date": datetime.now().strftime("%d %b %Y"),
+            "data": report_data,
+        }
     )
 
-    pdf_bytes = HTML(string=html, base_url=BASE_DIR).write_pdf()
+    HTML(string=html_content, base_url=str(BASE_DIR)).write_pdf(str(pdf_path))
 
-    output_path = os.path.join(STATIC_DIR, "rms_report.pdf")
-    with open(output_path, "wb") as f:
-        f.write(pdf_bytes)
-
-    return HTMLResponse(
-        f"""
-        <h2>PDF Generated</h2>
-        <p><a href="/static/rms_report.pdf" target="_blank">Download RMS PDF</a></p>
-        <p><a href="/">Create another report</a></p>
-        """
+    return templates.TemplateResponse(
+        "form.html",
+        {
+            "request": request,
+            "categories": CATEGORIES,
+            "generated_date": datetime.now().strftime("%d %b %Y"),
+            "success_pdf_url": f"/static/reports/{pdf_filename}",
+        },
     )
+
+
+@app.get("/health", response_class=HTMLResponse)
+async def health():
+    return "ok"
