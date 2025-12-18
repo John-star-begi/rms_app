@@ -1,6 +1,5 @@
 FROM python:3.13-slim
 
-# System deps required by Chromium
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -28,12 +27,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ✅ THIS IS THE CRITICAL LINE
-RUN python -m playwright install chromium chromium-headless-shell
-
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN mkdir -p /ms-playwright && chmod -R 755 /ms-playwright
+RUN python -m playwright install chromium
 
 COPY . .
 
 EXPOSE 10000
-
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
