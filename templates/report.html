@@ -9,20 +9,18 @@
   --brand:#0077B6;
   --brand-light:#E8F4FB;
   --brand-header:#E3F2FD;
+
   --text:#222;
   --muted:#666;
   --ok:#2E7D32;
   --bad:#B00020;
+  --na:#777;
+
   --border:#D0D7DE;
   --radius:14px;
 }
 
 @page{size:A4;margin:20mm;}
-
-*{
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
-}
 
 body{
   margin:0;
@@ -62,13 +60,11 @@ body{
   font-size:15pt;
   font-weight:700;
   color:var(--brand);
-  margin:0;
 }
 
 .header-sub{
   font-size:10pt;
   color:var(--muted);
-  margin-top:2px;
 }
 
 .info-card{
@@ -78,8 +74,7 @@ body{
 .info-grid{
   display:grid;
   grid-template-columns:180px 1fr;
-  row-gap:6px;
-  column-gap:12px;
+  gap:6px 12px;
 }
 
 .label{
@@ -144,7 +139,7 @@ tbody td{
 
 .status-ok{color:var(--ok);font-weight:700;}
 .status-bad{color:var(--bad);font-weight:700;}
-.status-na{color:var(--muted);font-weight:700;}
+.status-na{color:var(--na);font-weight:700;}
 
 .section-title{
   font-size:11pt;
@@ -154,7 +149,7 @@ tbody td{
 }
 
 .category-card{
-  padding:14px;
+  padding:16px;
 }
 
 .category-head{
@@ -162,14 +157,32 @@ tbody td{
   justify-content:space-between;
   align-items:baseline;
   font-weight:700;
+  font-size:11pt;
 }
 
 .category-status.ok{color:var(--ok);}
 .category-status.bad{color:var(--bad);}
-.category-status.na{color:var(--muted);}
+.category-status.na{color:var(--na);}
+
+.category-meta{
+  font-size:9.5pt;
+  color:var(--muted);
+  margin-top:4px;
+}
+
+.checklist{
+  margin:10px 0 0 18px;
+  padding:0;
+}
+
+.checklist li{
+  font-size:9.5pt;
+  color:#333;
+  margin-bottom:4px;
+}
 
 .category-note{
-  margin-top:6px;
+  margin-top:8px;
   font-size:9.5pt;
   color:var(--muted);
 }
@@ -178,12 +191,14 @@ tbody td{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:12px;
+  margin-top:12px;
 }
 
 .photos-grid img{
   width:100%;
   height:220px;
   object-fit:cover;
+  border-radius:8px;
 }
 
 .assurance{
@@ -204,8 +219,9 @@ tbody td{
 <body>
 <div class="page">
 
+<!-- HEADER -->
 <div class="card header-card">
-  <img src="{{ logo_url }}" alt="Class A Fix">
+  <img src="/static/class-a-fix-logo.jpg" alt="Class A Fix">
   <div>
     <div class="header-title">Rental Minimum Standards Check</div>
     <div class="header-sub">Class A Fix Service Report</div>
@@ -214,24 +230,20 @@ tbody td{
 
 <div class="spacer"></div>
 
+<!-- INFO CARD -->
 <div class="card info-card">
   <div class="info-grid">
     <div class="label">Property</div><div class="value">{{ property_address }}</div>
-    <div class="label">Real estate agency</div><div class="value">{{ agency }}</div>
-    <div class="label">Property manager</div><div class="value">{{ property_manager }}</div>
-
-    <div class="label">Status</div>
-    <div class="value {{ 'ok' if non_compliant_count == 0 else 'bad' }}">
-      {{ 'Compliant' if non_compliant_count == 0 else 'Action required' }}
-    </div>
-
-    <div class="label">Generated on</div><div class="value">{{ generated_date }}</div>
+    <div class="label">Overall status</div>
+    <div class="value {{ 'ok' if overall_status == 'Compliant' else 'bad' }}">{{ overall_status }}</div>
+    <div class="label">Generated</div><div class="value">{{ generated_date }}</div>
     <div class="label">Reference</div><div class="value">{{ reference }}</div>
   </div>
 </div>
 
 <div class="spacer"></div>
 
+<!-- SUMMARY CARDS -->
 <div class="summary-row">
   <div class="card summary-card">
     <div class="summary-label">Standards checked</div>
@@ -249,55 +261,77 @@ tbody td{
 
 <div class="spacer"></div>
 
+<!-- TABLE SUMMARY -->
 <div class="card table-card">
-  <table>
-    <thead>
-      <tr>
-        <th>Category</th>
-        <th>Status</th>
-        <th>Summary</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in table_rows %}
-      <tr>
-        <td>{{ row.category }}</td>
-        <td class="{{ row.status_class }}">{{ row.status }}</td>
-        <td>{{ row.summary }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<table>
+<thead>
+<tr>
+  <th>Category</th>
+  <th>Status</th>
+  <th>Summary</th>
+</tr>
+</thead>
+<tbody>
+{% for row in table_rows %}
+<tr>
+  <td>{{ row.name }}</td>
+  <td class="{{ row.status_class }}">{{ row.status }}</td>
+  <td>{{ row.summary }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
 </div>
 
 <div class="spacer"></div>
 
+<!-- CATEGORY DETAIL CARDS -->
 <div class="section-title">Category assessment details</div>
 
 {% for cat in categories %}
 <div class="card category-card">
+
   <div class="category-head">
     <div>{{ cat.name }}</div>
-    <div class="category-status {{ cat.cat_status_class }}">{{ cat.status }}</div>
+    <div class="category-status {{ cat.status_class }}">{{ cat.status }}</div>
   </div>
+
+  <div class="category-meta">
+    Legislation reference: {{ cat.legislation }}
+  </div>
+
+  <ul class="checklist">
+    {% for item in cat.checklist %}
+    <li>{{ item }}</li>
+    {% endfor %}
+  </ul>
 
   {% if cat.note %}
   <div class="category-note">{{ cat.note }}</div>
   {% endif %}
+
+  {% if cat.photos %}
+  <div class="photos-grid">
+    {% for p in cat.photos %}
+    <img src="{{ p }}" alt="Inspection photo">
+    {% endfor %}
+  </div>
+  {% endif %}
+
 </div>
 <div class="spacer"></div>
 {% endfor %}
 
-{% if photo_urls %}
+<!-- PHOTO APPENDIX -->
+{% if all_photos %}
 <div class="card">
-  <div class="section-title">Inspection photo record</div>
+  <div class="section-title">Inspection photo appendix</div>
   <div class="photos-grid">
-    {% for p in photo_urls %}
+    {% for p in all_photos %}
     <img src="{{ p }}" alt="Inspection photo">
     {% endfor %}
   </div>
 </div>
-
 <div class="spacer"></div>
 {% endif %}
 
