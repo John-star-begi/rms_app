@@ -1,3 +1,9 @@
+import os
+import uuid
+import shutil
+from pathlib import Path
+from datetime import datetime
+
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -5,10 +11,18 @@ from fastapi.templating import Jinja2Templates
 
 from playwright.async_api import async_playwright
 
-from pathlib import Path
-from datetime import datetime
-import uuid
-import shutil
+
+# --------------------------------------------------
+# PLAYWRIGHT HARD FIX FOR RENDER
+# --------------------------------------------------
+
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "/ms-playwright"
+os.environ["PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD"] = "1"
+
+
+# --------------------------------------------------
+# PATH SETUP
+# --------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
@@ -220,11 +234,14 @@ async def generate_report(request: Request):
 
         for upload in uploads:
             if upload.filename:
-                photo_path = report_dir / upload.filename
+                safe_name = f"{uuid.uuid4().hex}_{upload.filename}"
+                photo_path = report_dir / safe_name
+
                 with open(photo_path, "wb") as buffer:
                     shutil.copyfileobj(upload.file, buffer)
 
-                photo_url = f"/reports/{report_id}/{upload.filename}"
+                # IMPORTANT: use file:// for Playwright
+                photo_url = f"file://{photo_path}"
                 photos.append(photo_url)
                 all_photos.append(photo_url)
 
@@ -268,15 +285,28 @@ async def generate_report(request: Request):
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            args=["--no-sandbox", "--disable-dev-shm-usage"]
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--single-process"
+            ]
         )
+
         page = await browser.new_page()
+
         await page.set_content(
             html,
-            wait_until="networkidle",
-            base_url="http://localhost"
+            wait_until="networkidle"
         )
-        await page.pdf(path=str(pdf_path), format="A4")
+
+        await page.pdf(
+            path=str(pdf_path),
+            format="A4",
+            print_background=True
+        )
+
         await browser.close()
 
     return FileResponse(
