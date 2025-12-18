@@ -8,20 +8,24 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
-from weasyprint import HTML
+
+from playwright.async_api import async_playwright
 
 
 app = FastAPI()
 
 BASE_DIR = Path(__file__).resolve().parent
+TEMPLATE_DIR = BASE_DIR / "templates"
+
 STATIC_DIR = BASE_DIR / "static"
 UPLOAD_DIR = STATIC_DIR / "uploads"
 REPORT_DIR = STATIC_DIR / "reports"
-TEMPLATE_DIR = BASE_DIR / "templates"
+TMP_DIR = BASE_DIR / "tmp"
 
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 REPORT_DIR.mkdir(parents=True, exist_ok=True)
+TMP_DIR.mkdir(parents=True, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
@@ -94,7 +98,7 @@ async def generate_report(request: Request):
         key = category_key(category)
 
         status = (form.get(f"{key}_status") or "Not applicable").strip()
-        comment = (form.get(f"{key}_comment") or "").strip()
+        note = (form.get(f"{key}_comment") or "").strip()
 
         photos: List[str] = []
         uploads = form.getlist(f"{key}_photos")
@@ -104,8 +108,7 @@ async def generate_report(request: Request):
                 continue
 
             filename = safe_filename(upload.filename)
-            unique = uuid.uuid4().hex
-            final_name = f"{key}_{unique}_{filename}"
+            final_name = f"{key}_{uuid.uuid4().hex}_{filename}"
             file_path = UPLOAD_DIR / final_name
 
             content = await upload.read()
@@ -119,7 +122,7 @@ async def generate_report(request: Request):
 
         report_data[category] = {
             "status": status,
-            "comment": comment,
+            "comment": note,
             "photos": photos,
         }
 
@@ -130,7 +133,6 @@ async def generate_report(request: Request):
 
     standards_checked = len(CATEGORIES)
     actions_required = non_compliant_count
-
     reference = f"RMS-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
 
     table_rows: List[Dict[str, str]] = []
@@ -171,19 +173,12 @@ async def generate_report(request: Request):
             else:
                 other_photos.extend(photos)
 
-    # Make absolute URLs for WeasyPrint so it can actually fetch assets
     base = str(request.base_url).rstrip("/")
     logo_url = f"{base}/static/class-a-fix-logo.jpg"
 
     photo_urls: List[str] = []
     for p in (non_compliant_photos + other_photos):
-        if p.startswith("http://") or p.startswith("https://"):
-            photo_urls.append(p)
-        else:
-            photo_urls.append(f"{base}{p}")
-
-    pdf_filename = f"rms_{uuid.uuid4().hex}.pdf"
-    pdf_path = REPORT_DIR / pdf_filename
+        photo_urls.append(f"{base}{p}")
 
     html_content = templates.get_template("report.html").render(
         {
@@ -202,8 +197,28 @@ async def generate_report(request: Request):
         }
     )
 
-    # Critical: base_url must be an absolute URL so /static resolves
-    HTML(string=html_content, base_url=str(request.base_url)).write_pdf(str(pdf_path))
+    tmp_html = TMP_DIR / f"render_{uuid.uuid4().hex}.html"
+    tmp_html.write_text(html_content, encoding="utf-8")
+
+    pdf_filename = f"rms_{uuid.uuid4().hex}.pdf"
+    pdf_path = REPORT_DIR / pdf_filename
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(args=["--no-sandbox"])
+        page = await browser.new_page()
+        await page.goto(tmp_html.as_uri(), wait_until="load")
+        await page.pdf(
+            path=str(pdf_path),
+            format="A4",
+            print_background=True,
+            margin={"top": "20mm", "right": "20mm", "bottom": "20mm", "left": "20mm"},
+        )
+        await browser.close()
+
+    try:
+        tmp_html.unlink(missing_ok=True)
+    except Exception:
+        pass
 
     return templates.TemplateResponse(
         "form.html",
