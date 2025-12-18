@@ -1,19 +1,12 @@
-FROM python:3.12-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-WORKDIR /app
+FROM python:3.13-slim
 
 # System deps required by Chromium
 RUN apt-get update && apt-get install -y \
     wget \
-    ca-certificates \
-    fonts-liberation \
-    fonts-dejavu \
+    gnupg \
     libnss3 \
-    libatk-bridge2.0-0 \
     libatk1.0-0 \
+    libatk-bridge2.0-0 \
     libcups2 \
     libdrm2 \
     libxkbcommon0 \
@@ -25,16 +18,21 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     libpangocairo-1.0-0 \
     libpango-1.0-0 \
+    libcairo2 \
     libgtk-3-0 \
+    fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+WORKDIR /app
 
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 👇 THIS IS THE CRITICAL LINE YOU WERE MISSING
+# ✅ THIS IS THE CRITICAL LINE
 RUN python -m playwright install chromium
 
 COPY . .
+
+EXPOSE 10000
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
