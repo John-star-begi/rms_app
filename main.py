@@ -5,12 +5,16 @@ from pathlib import Path
 from typing import Dict, Any, List
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
 from weasyprint import HTML
 
+
+# -------------------------------------------------------------------
+# App setup
+# -------------------------------------------------------------------
 
 app = FastAPI()
 
@@ -27,6 +31,11 @@ REPORT_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+# -------------------------------------------------------------------
+# Category configuration
+# -------------------------------------------------------------------
 
 CATEGORIES: List[str] = [
     "Electrical safety",
@@ -46,20 +55,22 @@ CATEGORIES: List[str] = [
 ]
 
 
-def safe_filename(original_name: str) -> str:
-    base = os.path.basename(original_name or "")
-    base = base.replace("\\", "_").replace("/", "_").strip()
-    if not base:
-        base = "upload"
-    return base
+def category_key(name: str) -> str:
+    return name.lower().replace(" ", "_")
 
 
-def category_key(category: str) -> str:
-    return category.strip().lower().replace(" ", "_")
+def safe_filename(name: str) -> str:
+    base = os.path.basename(name or "")
+    base = base.replace("/", "_").replace("\\", "_").strip()
+    return base if base else "upload"
 
+
+# -------------------------------------------------------------------
+# Routes
+# -------------------------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
-async def form_page(request: Request):
+async def show_form(request: Request):
     return templates.TemplateResponse(
         "form.html",
         {
@@ -74,11 +85,13 @@ async def form_page(request: Request):
 async def generate_report(request: Request):
     form = await request.form()
 
-    agency = (form.get("agency") or "").strip()
-    property_manager = (form.get("property_manager") or "").strip()
     property_address = (form.get("property_address") or "").strip()
 
     report_data: Dict[str, Dict[str, Any]] = {}
+
+    # ---------------------------------------------------------------
+    # Collect category data
+    # ---------------------------------------------------------------
 
     for category in CATEGORIES:
         key = category_key(category)
@@ -86,48 +99,67 @@ async def generate_report(request: Request):
         status = (form.get(f"{key}_status") or "").strip()
         comment = (form.get(f"{key}_comment") or "").strip()
 
-        saved_photos: List[str] = []
+        photos: List[str] = []
         uploads = form.getlist(f"{key}_photos")
 
         for upload in uploads:
             if not getattr(upload, "filename", None):
                 continue
 
-            original = safe_filename(upload.filename)
+            filename = safe_filename(upload.filename)
             unique = uuid.uuid4().hex
-            final_name = f"{key}_{unique}_{original}"
-            file_path = UPLOAD_DIR / final_name
+            final_name = f"{key}_{unique}_{filename}"
+            path = UPLOAD_DIR / final_name
 
-            contents = await upload.read()
-            if not contents:
+            content = await upload.read()
+            if not content:
                 continue
 
-            with open(file_path, "wb") as f:
-                f.write(contents)
+            with open(path, "wb") as f:
+                f.write(content)
 
-            saved_photos.append(f"/static/uploads/{final_name}")
+            photos.append(f"/static/uploads/{final_name}")
 
         report_data[category] = {
             "status": status,
             "comment": comment,
-            "photos": saved_photos,
+            "photos": photos,
         }
+
+    # ---------------------------------------------------------------
+    # Derived values for the report
+    # ---------------------------------------------------------------
+
+    non_compliant_count = sum(
+        1 for item in report_data.values()
+        if item["status"] == "Non compliant"
+    )
+
+    reference = f"RMS-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
 
     pdf_id = uuid.uuid4().hex
     pdf_filename = f"rms_report_{pdf_id}.pdf"
     pdf_path = REPORT_DIR / pdf_filename
 
+    # ---------------------------------------------------------------
+    # Render PDF HTML
+    # ---------------------------------------------------------------
+
     html_content = templates.get_template("report.html").render(
         {
-            "agency": agency,
-            "property_manager": property_manager,
             "property_address": property_address,
             "generated_date": datetime.now().strftime("%d %b %Y"),
+            "reference": reference,
             "data": report_data,
+            "non_compliant_count": non_compliant_count,
         }
     )
 
     HTML(string=html_content, base_url=str(BASE_DIR)).write_pdf(str(pdf_path))
+
+    # ---------------------------------------------------------------
+    # Return form with success message
+    # ---------------------------------------------------------------
 
     return templates.TemplateResponse(
         "form.html",
