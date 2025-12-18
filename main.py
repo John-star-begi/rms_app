@@ -1,16 +1,30 @@
-from fastapi import FastAPI, Request, Form, UploadFile, File
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from weasyprint import HTML
-import os
 from datetime import datetime
+import os
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
 
-UPLOAD_DIR = "static/uploads"
+# -------------------------------
+# Folders
+# -------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads")
+
+os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+templates = Jinja2Templates(directory="templates")
+
+# -------------------------------
+# RMS Categories
+# -------------------------------
 CATEGORIES = [
     "Bathroom",
     "Electrical safety",
@@ -28,6 +42,9 @@ CATEGORIES = [
     "Windows",
 ]
 
+# -------------------------------
+# Routes
+# -------------------------------
 
 @app.get("/", response_class=HTMLResponse)
 async def rms_form(request: Request):
@@ -42,29 +59,35 @@ async def rms_form(request: Request):
 
 
 @app.post("/generate", response_class=HTMLResponse)
-async def generate_rms(
-    request: Request,
-    agency: str = Form(...),
-    property_manager: str = Form(...),
-    property_address: str = Form(...),
-    **form_data,
-):
+async def generate_rms(request: Request):
+    form = await request.form()
+
+    agency = form.get("agency")
+    property_manager = form.get("property_manager")
+    property_address = form.get("property_address")
+
     categories_data = {}
 
     for cat in CATEGORIES:
-        key = cat.lower().replace(" ", "_")
-        status = form_data.get(f"{key}_status")
-        comment = form_data.get(f"{key}_comment", "")
+        key = cat.lower().replace(" ", "_").replace("-", "_")
 
-        photos = request.files.getlist(f"{key}_photos")
+        status = form.get(f"{key}_status")
+        comment = form.get(f"{key}_comment", "")
+
+        photos = form.getlist(f"{key}_photos")
 
         saved_photos = []
         for photo in photos:
+            if not photo.filename:
+                continue
+
             filename = f"{key}_{photo.filename}"
-            path = os.path.join(UPLOAD_DIR, filename)
-            with open(path, "wb") as f:
+            filepath = os.path.join(UPLOAD_DIR, filename)
+
+            with open(filepath, "wb") as f:
                 f.write(await photo.read())
-            saved_photos.append(path)
+
+            saved_photos.append(f"static/uploads/{filename}")
 
         categories_data[key] = {
             "name": cat,
@@ -74,21 +97,24 @@ async def generate_rms(
         }
 
     html = templates.get_template("rms.html").render(
+        request=request,
         agency=agency,
         property_manager=property_manager,
         property_address=property_address,
-        categories=CATEGORIES,
         data=categories_data,
         generated_date=datetime.now().strftime("%d %b %Y"),
-        request=request,
     )
 
-    pdf = HTML(string=html, base_url=".").write_pdf()
+    pdf_bytes = HTML(string=html, base_url=BASE_DIR).write_pdf()
 
-    output_path = "rms_report.pdf"
+    output_path = os.path.join(STATIC_DIR, "rms_report.pdf")
     with open(output_path, "wb") as f:
-        f.write(pdf)
+        f.write(pdf_bytes)
 
     return HTMLResponse(
-        f"<h2>PDF Generated</h2><a href='/{output_path}'>Download RMS PDF</a>"
+        f"""
+        <h2>PDF Generated</h2>
+        <p><a href="/static/rms_report.pdf" target="_blank">Download RMS PDF</a></p>
+        <p><a href="/">Create another report</a></p>
+        """
     )
