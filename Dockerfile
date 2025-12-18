@@ -29,7 +29,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ✅ THIS IS THE CRITICAL LINE
-RUN python -m playwright install chromium
+RUN python -m playwright install chromium chromium-headless-shell
+
 
 COPY . .
 
