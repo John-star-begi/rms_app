@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, UploadFile, File
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -9,7 +9,6 @@ from pathlib import Path
 from datetime import datetime
 import uuid
 import shutil
-import asyncio
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
@@ -19,7 +18,11 @@ REPORTS_DIR = BASE_DIR / "reports"
 REPORTS_DIR.mkdir(exist_ok=True)
 
 app = FastAPI()
+
+# STATIC FILES
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/reports", StaticFiles(directory=REPORTS_DIR), name="reports")
+
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
@@ -205,18 +208,22 @@ async def generate_report(request: Request):
         status = form.get(f"{key}_status")
         note = form.get(f"{key}_notes")
 
-        status_class = "status-ok"
+        status_class = "ok"
         if status == "Non compliant":
-            status_class = "status-bad"
+            status_class = "bad"
             non_compliant_count += 1
+        elif status == "Not applicable":
+            status_class = "na"
 
         photos = []
         uploads = form.getlist(f"{key}_photos")
+
         for upload in uploads:
-            if isinstance(upload, UploadFile) and upload.filename:
+            if upload.filename:
                 photo_path = report_dir / upload.filename
                 with open(photo_path, "wb") as buffer:
                     shutil.copyfileobj(upload.file, buffer)
+
                 photo_url = f"/reports/{report_id}/{upload.filename}"
                 photos.append(photo_url)
                 all_photos.append(photo_url)
@@ -226,7 +233,7 @@ async def generate_report(request: Request):
             "legislation": cat_def["legislation"],
             "checklist": cat_def["checklist"],
             "status": status,
-            "status_class": "ok" if status == "Compliant" else "bad",
+            "status_class": status_class,
             "note": note,
             "photos": photos
         })
@@ -234,19 +241,19 @@ async def generate_report(request: Request):
         table_rows.append({
             "name": cat_def["name"],
             "status": status,
-            "status_class": status_class,
-            "summary": "Meets minimum standard" if status == "Compliant" else "Does not meet minimum standard"
+            "status_class": f"status-{status_class}",
+            "summary": (
+                "Meets minimum standard"
+                if status == "Compliant"
+                else "Does not meet minimum standard"
+            )
         })
-
-    overall_status = "Compliant" if non_compliant_count == 0 else "Action required"
 
     context = {
         "property_address": form.get("property_address"),
-        "agency": form.get("agency"),
-        "property_manager": form.get("property_manager"),
         "generated_date": datetime.now().strftime("%d %b %Y"),
         "reference": report_id,
-        "overall_status": overall_status,
+        "overall_status": "Compliant" if non_compliant_count == 0 else "Action required",
         "standards_checked": len(CATEGORY_DEFINITIONS),
         "non_compliant_count": non_compliant_count,
         "actions_required": non_compliant_count,
@@ -264,7 +271,11 @@ async def generate_report(request: Request):
             args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
         page = await browser.new_page()
-        await page.set_content(html, wait_until="networkidle")
+        await page.set_content(
+            html,
+            wait_until="networkidle",
+            base_url="http://localhost"
+        )
         await page.pdf(path=str(pdf_path), format="A4")
         await browser.close()
 
