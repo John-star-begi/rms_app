@@ -240,7 +240,6 @@ async def generate_report(request: Request):
                 with open(photo_path, "wb") as buffer:
                     shutil.copyfileobj(upload.file, buffer)
 
-                # IMPORTANT: use file:// for Playwright
                 photo_url = f"file://{photo_path}"
                 photos.append(photo_url)
                 all_photos.append(photo_url)
@@ -290,7 +289,9 @@ async def generate_report(request: Request):
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
                 "--disable-gpu",
-                "--single-process"
+                "--single-process",
+                "--allow-file-access-from-files",
+                "--disable-web-security"
             ]
         )
 
