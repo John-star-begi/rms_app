@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
@@ -47,66 +47,6 @@ CATEGORIES: List[str] = [
 ]
 
 
-CATEGORY_EXPLANATIONS: Dict[str, List[str]] = {
-    "Electrical safety": [
-        "Switchboard and electrical fittings appear safe at the time of inspection.",
-        "No visible hazards such as exposed wiring were identified.",
-    ],
-    "Plumbing and water pressure": [
-        "Plumbing fixtures appear operational at the time of inspection.",
-        "Water pressure is assessed by operation of taps and fixtures where accessible.",
-    ],
-    "Hot water system": [
-        "Hot water is available at the time of inspection.",
-        "System condition is assessed visually where accessible.",
-    ],
-    "Heating and cooling": [
-        "Heating and or cooling systems are checked for basic operation where accessible.",
-        "Assessment is limited to visible and accessible components at inspection time.",
-    ],
-    "Smoke alarms": [
-        "Smoke alarms are checked for presence and basic operation where accessible.",
-        "Compliance may require licensed verification depending on installation and location.",
-    ],
-    "Windows and locks": [
-        "Windows and latches are checked for basic operation and security where accessible.",
-        "Assessment includes visible damage and ability to secure openings.",
-    ],
-    "Doors and locks": [
-        "External doors and locks are checked for secure closure and basic operation.",
-        "Assessment includes visible damage and ability to lock as intended.",
-    ],
-    "Mould and damp": [
-        "Visible signs of mould and damp are checked at the time of inspection.",
-        "Assessment considers ventilation and visible water ingress indicators where present.",
-    ],
-    "Structural issues": [
-        "Visible structural concerns are noted where present.",
-        "Assessment is non invasive and limited to accessible areas.",
-    ],
-    "Pest issues": [
-        "Visible signs of pest activity are noted where present.",
-        "Assessment is limited to obvious indicators at inspection time.",
-    ],
-    "Roof and gutters": [
-        "Roof and gutter condition is assessed visually where accessible.",
-        "Assessment may be limited by access and line of sight.",
-    ],
-    "Appliances": [
-        "Included appliances are checked for basic operation where accessible.",
-        "Assessment does not replace licensed servicing where required.",
-    ],
-    "Gas safety": [
-        "Visible gas related concerns are noted where present.",
-        "Licensed testing may be required for full verification.",
-    ],
-    "General cleanliness": [
-        "General cleanliness is noted to support presentation and habitability context.",
-        "This is not a cleaning certification, only an observation at inspection time.",
-    ],
-}
-
-
 def category_key(name: str) -> str:
     return name.lower().replace(" ", "_")
 
@@ -118,13 +58,16 @@ def safe_filename(name: str) -> str:
 
 
 def status_classes(status: str) -> Tuple[str, str]:
-    s = (status or "").strip()
-    if s == "Compliant":
+    if status == "Compliant":
         return "status-ok", "ok"
-    if s == "Non compliant":
+    if status == "Non compliant":
         return "status-bad", "bad"
     return "status-na", "na"
 
+
+# --------------------------------------------------
+# Routes
+# --------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
 async def show_form(request: Request):
@@ -136,6 +79,12 @@ async def show_form(request: Request):
             "generated_date": datetime.now().strftime("%d %b %Y"),
         },
     )
+
+
+# SAFETY ROUTE – prevents 405 Method Not Allowed
+@app.get("/generate")
+async def generate_get():
+    return RedirectResponse(url="/")
 
 
 @app.post("/generate", response_class=HTMLResponse)
@@ -183,7 +132,7 @@ async def generate_report(request: Request):
 
     non_compliant_count = sum(
         1 for item in report_data.values()
-        if item.get("status") == "Non compliant"
+        if item["status"] == "Non compliant"
     )
 
     standards_checked = len(CATEGORIES)
@@ -191,51 +140,38 @@ async def generate_report(request: Request):
 
     reference = f"RMS-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
 
-    categories_out: List[Dict[str, Any]] = []
-    table_rows: List[Dict[str, str]] = []
-
-    non_compliant_photos: List[str] = []
-    other_photos: List[str] = []
+    table_rows = []
+    categories_out = []
+    photo_urls: List[str] = []
 
     for category in CATEGORIES:
-        item = report_data.get(category, {})
-        status = (item.get("status") or "").strip()
-        note = (item.get("comment") or "").strip()
-        photos = item.get("photos") or []
+        item = report_data[category]
+        status = item["status"]
+        note = item["comment"]
+        photos = item["photos"]
 
         table_status_class, cat_status_class = status_classes(status)
-
-        summary = note.strip()
-        if len(summary) > 120:
-            summary = summary[:117].rstrip() + "..."
 
         table_rows.append(
             {
                 "category": category,
-                "status": status if status else "Not applicable",
+                "status": status or "Not applicable",
                 "status_class": table_status_class,
-                "summary": summary,
+                "summary": note,
             }
         )
 
-        explanation = CATEGORY_EXPLANATIONS.get(category, [])
         categories_out.append(
             {
                 "name": category,
-                "status": status if status else "Not applicable",
+                "status": status or "Not applicable",
                 "cat_status_class": cat_status_class,
                 "note": note,
-                "explanation": explanation,
+                "explanation": [],
             }
         )
 
-        if photos:
-            if status == "Non compliant":
-                non_compliant_photos.extend(photos)
-            else:
-                other_photos.extend(photos)
-
-    photo_urls = non_compliant_photos + other_photos
+        photo_urls.extend(photos)
 
     pdf_id = uuid.uuid4().hex
     pdf_filename = f"rms_report_{pdf_id}.pdf"
