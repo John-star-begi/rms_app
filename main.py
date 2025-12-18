@@ -240,7 +240,7 @@ async def generate_report(request: Request):
                 with open(photo_path, "wb") as buffer:
                     shutil.copyfileobj(upload.file, buffer)
 
-                photo_url = f"file://{photo_path}"
+                photo_url = photo_path.resolve().as_uri()
                 photos.append(photo_url)
                 all_photos.append(photo_url)
 
