@@ -5,13 +5,12 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+# System deps required by Chromium
 RUN apt-get update && apt-get install -y \
     wget \
-    gnupg \
     ca-certificates \
     fonts-liberation \
     fonts-dejavu \
-    fonts-freefont-ttf \
     libnss3 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
@@ -30,8 +29,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 👇 THIS IS THE CRITICAL LINE YOU WERE MISSING
 RUN python -m playwright install chromium
 
 COPY . .
