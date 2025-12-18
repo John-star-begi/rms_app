@@ -102,6 +102,7 @@ td{
 
 .status-ok{color:var(--ok);font-weight:700;}
 .status-bad{color:var(--bad);font-weight:700;}
+.status-na{color:var(--muted);font-weight:700;}
 
 .details-card .category{
   border-top:1px solid var(--border);
@@ -117,14 +118,26 @@ td{
 .cat-head{
   display:flex;
   justify-content:space-between;
+  gap:12px;
   align-items:baseline;
   font-weight:700;
 }
 .cat-status.ok{color:var(--ok);}
 .cat-status.bad{color:var(--bad);}
+.cat-status.na{color:var(--muted);}
 
 .cat-summary{
   margin-top:4px;
+  color:var(--muted);
+  font-size:9.5pt;
+}
+
+.checklist{
+  margin:8px 0 0 16px;
+  padding:0;
+}
+.checklist li{
+  margin-bottom:4px;
   color:var(--muted);
   font-size:9.5pt;
 }
@@ -162,7 +175,6 @@ td{
 <body>
 <div class="page">
 
-<!-- Header -->
 <div class="header">
   <img src="/static/class-a-fix-logo.jpg" class="logo" alt="Class A Fix">
   <div>
@@ -173,65 +185,56 @@ td{
 
 <div class="spacer"></div>
 
-<!-- Info card -->
 <div class="card info-card">
   <div class="info-grid">
-    <div class="label">Property</div>
-    <div class="value">{{ property_address }}</div>
+    <div class="label">Property</div><div class="value">{{ property_address }}</div>
+    <div class="label">Real estate agency</div><div class="value">{{ agency }}</div>
+    <div class="label">Property manager</div><div class="value">{{ property_manager }}</div>
 
-    <div class="label">Overall status</div>
+    <div class="label">Status</div>
     <div class="value {{ 'ok' if non_compliant_count == 0 else 'bad' }}">
       {{ 'Compliant' if non_compliant_count == 0 else 'Action required' }}
     </div>
 
-    <div class="label">Generated</div>
-    <div class="value">{{ generated_date }}</div>
-
-    <div class="label">Reference</div>
-    <div class="value">{{ reference }}</div>
+    <div class="label">Generated on</div><div class="value">{{ generated_date }}</div>
+    <div class="label">Reference</div><div class="value">{{ reference }}</div>
   </div>
 </div>
 
 <div class="spacer"></div>
 
-<!-- Summary cards -->
 <div class="summary-row">
   <div class="card summary-card">
     <div class="summary-title">Standards checked</div>
-    <div class="summary-value">{{ data|length }}</div>
+    <div class="summary-value">{{ standards_checked }}</div>
   </div>
-
   <div class="card summary-card">
     <div class="summary-title">Non compliant</div>
     <div class="summary-value">{{ non_compliant_count }}</div>
   </div>
-
   <div class="card summary-card">
     <div class="summary-title">Actions required</div>
-    <div class="summary-value">{{ non_compliant_count }}</div>
+    <div class="summary-value">{{ actions_required }}</div>
   </div>
 </div>
 
 <div class="spacer"></div>
 
-<!-- Table overview -->
 <div class="card table-card">
 <table>
 <thead>
 <tr>
   <th>Category</th>
   <th>Status</th>
-  <th>Notes</th>
+  <th>Summary</th>
 </tr>
 </thead>
 <tbody>
-{% for category, item in data.items() %}
+{% for row in table_rows %}
 <tr>
-  <td>{{ category }}</td>
-  <td class="{{ 'status-ok' if item.status == 'Compliant' else 'status-bad' }}">
-    {{ item.status }}
-  </td>
-  <td>{{ item.comment }}</td>
+  <td>{{ row.category }}</td>
+  <td class="{{ row.status_class }}">{{ row.status }}</td>
+  <td>{{ row.summary }}</td>
 </tr>
 {% endfor %}
 </tbody>
@@ -240,21 +243,26 @@ td{
 
 <div class="spacer"></div>
 
-<!-- Detailed categories -->
 <div class="card details-card">
   <div class="section-title">Category assessment details</div>
 
-  {% for category, item in data.items() %}
+  {% for cat in categories %}
   <div class="category">
     <div class="cat-head">
-      <div>{{ category }}</div>
-      <div class="cat-status {{ 'ok' if item.status == 'Compliant' else 'bad' }}">
-        {{ item.status }}
-      </div>
+      <div>{{ cat.name }}</div>
+      <div class="cat-status {{ cat.cat_status_class }}">{{ cat.status }}</div>
     </div>
 
-    {% if item.comment %}
-    <div class="cat-summary">{{ item.comment }}</div>
+    {% if cat.explanation and cat.explanation|length > 0 %}
+    <ul class="checklist">
+      {% for line in cat.explanation %}
+      <li>{{ line }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if cat.note %}
+    <div class="cat-summary">{{ cat.note }}</div>
     {% endif %}
   </div>
   {% endfor %}
@@ -262,12 +270,11 @@ td{
 
 <div class="spacer"></div>
 
-<!-- Photos -->
-{% if photos %}
+{% if photo_urls and photo_urls|length > 0 %}
 <div class="card">
   <div class="section-title">Inspection photo record</div>
   <div class="photos-grid">
-    {% for p in photos %}
+    {% for p in photo_urls %}
     <img src="{{ p }}" alt="Inspection photo">
     {% endfor %}
   </div>
