@@ -9,17 +9,20 @@
   --brand:#0077B6;
   --brand-light:#E8F4FB;
   --brand-header:#E3F2FD;
-
   --text:#222;
   --muted:#666;
   --ok:#2E7D32;
   --bad:#B00020;
-
   --border:#D0D7DE;
   --radius:14px;
 }
 
 @page{size:A4;margin:20mm;}
+
+*{
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
 
 body{
   margin:0;
@@ -201,9 +204,8 @@ tbody td{
 <body>
 <div class="page">
 
-<!-- HEADER CARD -->
 <div class="card header-card">
-  <img src="/static/class-a-fix-logo.jpg" alt="Class A Fix">
+  <img src="{{ logo_url }}" alt="Class A Fix">
   <div>
     <div class="header-title">Rental Minimum Standards Check</div>
     <div class="header-sub">Class A Fix Service Report</div>
@@ -212,7 +214,6 @@ tbody td{
 
 <div class="spacer"></div>
 
-<!-- INFO CARD -->
 <div class="card info-card">
   <div class="info-grid">
     <div class="label">Property</div><div class="value">{{ property_address }}</div>
@@ -231,7 +232,6 @@ tbody td{
 
 <div class="spacer"></div>
 
-<!-- SUMMARY CARDS -->
 <div class="summary-row">
   <div class="card summary-card">
     <div class="summary-label">Standards checked</div>
@@ -249,7 +249,6 @@ tbody td{
 
 <div class="spacer"></div>
 
-<!-- TABLE CARD -->
 <div class="card table-card">
   <table>
     <thead>
@@ -273,7 +272,6 @@ tbody td{
 
 <div class="spacer"></div>
 
-<!-- CATEGORY DETAIL CARDS -->
 <div class="section-title">Category assessment details</div>
 
 {% for cat in categories %}
@@ -290,7 +288,6 @@ tbody td{
 <div class="spacer"></div>
 {% endfor %}
 
-<!-- PHOTOS -->
 {% if photo_urls %}
 <div class="card">
   <div class="section-title">Inspection photo record</div>
