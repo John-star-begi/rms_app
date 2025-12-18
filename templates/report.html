@@ -248,4 +248,44 @@ td{
   <div class="category">
     <div class="cat-head">
       <div>{{ category }}</div>
-      <div class="cat-
+      <div class="cat-status {{ 'ok' if item.status == 'Compliant' else 'bad' }}">
+        {{ item.status }}
+      </div>
+    </div>
+
+    {% if item.comment %}
+    <div class="cat-summary">{{ item.comment }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="spacer"></div>
+
+<!-- Photos -->
+{% if photos %}
+<div class="card">
+  <div class="section-title">Inspection photo record</div>
+  <div class="photos-grid">
+    {% for p in photos %}
+    <img src="{{ p }}" alt="Inspection photo">
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="spacer"></div>
+
+<div class="assurance">
+  This report has been prepared to help ensure the property meets Victorian Minimum Rental Standards.
+</div>
+
+<div class="spacer"></div>
+
+<div class="footer">
+  Class A Fix – Maintenance Management Services | info@classafix.com.au | 03 9063 1538
+</div>
+
+</div>
+</body>
+</html>
